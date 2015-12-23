@@ -8,7 +8,6 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.provider.ContactsContract;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
@@ -19,17 +18,15 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import org.json.JSONException;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 
-public class ScrollingListActivity extends AppCompatActivity {
+public class WeatherActivity extends AppCompatActivity {
 
     static boolean calledFlag = false;
     String[] days;
@@ -40,7 +37,7 @@ public class ScrollingListActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_scrolling);
+        setContentView(R.layout.activity_main);
         mUpdateView = (ListView) findViewById(R.id.listview);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -54,8 +51,23 @@ public class ScrollingListActivity extends AppCompatActivity {
             public void onClick(View view) {
                 Snackbar.make(view, calledFlag ? "Location information is current." : "Requesting location update", Snackbar.LENGTH_LONG)
                         .setAction("Thanks", null).show();
+                Context c = getApplicationContext();
+                PackageManager pm = c.getPackageManager();
+                String pn = c.getPackageName();
+                int hasFineLocPerm = pm.checkPermission(
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        pn);
+                int hasCoarseLocPerm = pm.checkPermission(
+                        Manifest.permission.ACCESS_COARSE_LOCATION,
+                        pn);
+                if (    (hasFineLocPerm != pm.PERMISSION_GRANTED) ||
+                        (hasCoarseLocPerm != pm.PERMISSION_GRANTED))
+                {
+                    //Report error
+                }else {
 
-                if (!calledFlag) requestLocationUpdate();
+                    if (!calledFlag) requestLocationUpdate();
+                }
             }
 
         });
@@ -105,24 +117,10 @@ public class ScrollingListActivity extends AppCompatActivity {
 
             public void onProviderDisabled(String provider) {}
         };
+        // Permission is checked in caller - consider dummy lat/long
+        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
 
-// Register the listener with the Location Manager to receive location updates
-        //checkPermission("android.permission.ACCESS_FINE_LOCATION"); "android.permission.ACCESS_COARSE_LOCATION"
-        PackageManager pm = this.getPackageManager();
-        int hasFineLocPerm = pm.checkPermission(
-                Manifest.permission.ACCESS_FINE_LOCATION,
-                this.getPackageName());
-        int hasCoarseLocPerm = pm.checkPermission(
-                Manifest.permission.ACCESS_COARSE_LOCATION,
-                this.getPackageName());
-        if (    (hasFineLocPerm != PackageManager.PERMISSION_GRANTED) ||
-                (hasCoarseLocPerm != PackageManager.PERMISSION_GRANTED))
-        {
-            //Report error
-        }else{
-            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
 
-        }
 
     }
 
