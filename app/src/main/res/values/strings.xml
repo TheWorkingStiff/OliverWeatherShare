@@ -4,4 +4,9 @@
         "Waiting for weather data...\n\n"
     </string>
     <string name="action_settings">Settings</string>
+    <string name="loc_loaded">Location information is current</string>
+    <string name="loc_needed">Requesting location update, please wait</string>
+    <string name="loc_recieved">Location received:</string>
+    <string name="need_internet_permission">Internet Permission is required for this action</string>
+
 </resources>

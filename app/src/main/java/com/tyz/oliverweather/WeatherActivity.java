@@ -28,11 +28,10 @@ import java.util.List;
 
 public class WeatherActivity extends AppCompatActivity {
 
-    static boolean calledFlag = false;
-    String[] days;
-    ArrayList<String> mDayList = new ArrayList<String>();
-
-    ListView mUpdateView = null;
+    static boolean calledFlag = false;                      // Do not seek Location after initial query
+    String[] days;                                          // Returned from JSON server
+    ArrayList<String> mDayList = new ArrayList<String>();   // Parsed days
+    ListView mUpdateView = null;                            // Content view
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,14 +41,13 @@ public class WeatherActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        JSONFetcher mJSONFetcher = new JSONFetcher(0);
-        mJSONFetcher.execute();
+
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, calledFlag ? "Location information is current." : "Requesting location update", Snackbar.LENGTH_LONG)
+                Snackbar.make(view, calledFlag ? R.string.loc_loaded : R.string.loc_needed, Snackbar.LENGTH_LONG)
                         .setAction("Thanks", null).show();
                 Context c = getApplicationContext();
                 PackageManager pm = c.getPackageManager();
@@ -97,6 +95,7 @@ public class WeatherActivity extends AppCompatActivity {
 
     public void requestLocationUpdate(){
 
+
         LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
 
         // respond to location updates
@@ -104,7 +103,16 @@ public class WeatherActivity extends AppCompatActivity {
             public void onLocationChanged(Location location) {
                 //useLocation(location);
                 if(!calledFlag) {
-                    Toast.makeText(getApplicationContext(),"Location received:" + location.toString(),Toast.LENGTH_LONG).show();
+                    Toast.makeText(getApplicationContext(), R.string.loc_recieved + location.toString(),Toast.LENGTH_LONG).show();
+
+                    //Begin query for Weather data immediately.
+                    // Specification calls for Location Data but we do not
+                    //  have API key and we are using a data source that
+                    //  does not take location.
+
+                    JSONFetcher mJSONFetcher = new JSONFetcher(0);
+                    mJSONFetcher.execute();
+
                     Log.v("Location", location.toString());
 
                 }
@@ -119,6 +127,7 @@ public class WeatherActivity extends AppCompatActivity {
         };
         // Permission is checked in caller - consider dummy lat/long
         locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
+
 
 
 
@@ -145,11 +154,7 @@ public class WeatherActivity extends AppCompatActivity {
 
     public void updateView(String s, int position) {
         final String TAG = "updateView";
-/*        TextView tv = (TextView) mUpdateView;
-
-        days = s.split("[|]");
-        tv.setText(days[position]);
-*/        Log.v(TAG, "exiting");
+        Log.v(TAG, "exiting");
 
     }
     public class JSONFetcher extends AsyncTask<String, Integer, String> {
@@ -173,8 +178,6 @@ public class WeatherActivity extends AppCompatActivity {
             Log.v(TAG, "Finished Async Execution");
 
             Log.v(TAG, "Async done. View Updated to:" + mPosition);
-
-
         }
 
         @Override
@@ -188,8 +191,9 @@ public class WeatherActivity extends AppCompatActivity {
         @Override
         protected String doInBackground(String... strings) {
             final String TAG = "doInBackground";
-            DataLoader dl = new DataLoader();
+            DataLoader dl = new DataLoader(getApplicationContext());
             String asyncResult = dl.getJSONData(Constants.JSON_HOST, Constants.HTTP_PORT, Constants.JSON_PATH);
+            if (asyncResult == getString(R.string.need_internet_permission)) return getString(R.string.need_internet_permission);
             String days = null;
             try {
                 days = dl.parseTemps(asyncResult);

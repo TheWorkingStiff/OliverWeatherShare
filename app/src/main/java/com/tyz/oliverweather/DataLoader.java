@@ -1,12 +1,12 @@
 package com.tyz.oliverweather;
 
-import android.os.AsyncTask;
+import android.Manifest;
+import android.content.Context;
+import android.content.pm.PackageManager;
 import android.util.Log;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -27,9 +27,10 @@ public class DataLoader {
     static long lastLoadTime = 0;
     static String lastResults = "";
     final long fetchDelayMillis = 60 * 1000 * Constants.REFRESH_DELAY_SECONDS; //Thousand millis * seconds * REFRESH
+    Context mContext = null;
 
-    public DataLoader() {
-
+    public DataLoader(Context c) {
+        mContext = c;
     }
 
     //Acquire JSON items from JSON Arg and Parse into display strings.
@@ -100,6 +101,15 @@ public class DataLoader {
     // Retrieve JSON data from HTTP source.
     public String getJSONData(String host, int port, String path) {
         final String TAG = "getJSONData";
+
+        PackageManager pm = mContext.getPackageManager();
+        String pn = mContext.getPackageName();
+        int hasFineLocPerm = pm.checkPermission(
+                Manifest.permission.INTERNET,
+                pn);
+        if(hasFineLocPerm != pm.PERMISSION_GRANTED){
+            return mContext.getString(R.string.need_internet_permission);
+        }
 
         Date date = new Date();
 
