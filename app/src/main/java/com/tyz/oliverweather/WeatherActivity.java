@@ -29,7 +29,8 @@ import java.util.List;
 public class WeatherActivity extends AppCompatActivity {
 
     static boolean calledFlag = false;                      // Do not seek Location after initial query
-    String[] days;                                          // Returned from JSON server
+    String mJSONResult = "";
+    String[] mDays;                                          // Returned from JSON server
     ArrayList<String> mDayList = new ArrayList<String>();   // Parsed days
     ListView mUpdateView = null;                            // Content view
 
@@ -72,6 +73,19 @@ public class WeatherActivity extends AppCompatActivity {
 
     }
 
+    @Override
+    public void onSaveInstanceState(Bundle savedInstanceState) {
+        super.onSaveInstanceState(savedInstanceState);
+        savedInstanceState.putString("JSONString", mJSONResult);
+
+    }
+
+    @Override
+    public void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        mJSONResult = savedInstanceState.getString("JSONString");
+        setAdapter(mJSONResult);
+    }
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -134,10 +148,10 @@ public class WeatherActivity extends AppCompatActivity {
     }
 
     void setAdapter(String s){
-        days = s.split("[|]");
+        mDays = s.split("[|]");
         ListView lv = (ListView) findViewById(R.id.listview);
-        for (int i = 0; i < days.length; ++i) {
-            mDayList.add(days[i]);
+        for (int i = 0; i < mDays.length; ++i) {
+            mDayList.add(mDays[i]);
         }
 
         final StableArrayAdapter adapter = new StableArrayAdapter(getApplicationContext(),
@@ -174,6 +188,7 @@ public class WeatherActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(String s) {
             final String TAG = "onPostExecute";
+            mJSONResult = s;
             setAdapter(s);
             Log.v(TAG, "Finished Async Execution");
 
