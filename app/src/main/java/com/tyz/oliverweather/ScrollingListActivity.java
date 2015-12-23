@@ -1,0 +1,232 @@
+package com.tyz.oliverweather;
+
+import android.Manifest;
+import android.content.Context;
+import android.content.pm.PackageManager;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
+import android.os.AsyncTask;
+import android.os.Bundle;
+import android.provider.ContactsContract;
+import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.Snackbar;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
+import android.util.Log;
+import android.view.View;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.widget.ArrayAdapter;
+import android.widget.ListView;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import org.json.JSONException;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+
+public class ScrollingListActivity extends AppCompatActivity {
+
+    static boolean calledFlag = false;
+    String[] days;
+    ArrayList<String> mDayList = new ArrayList<String>();
+
+    ListView mUpdateView = null;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_scrolling);
+        mUpdateView = (ListView) findViewById(R.id.listview);
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
+        JSONFetcher mJSONFetcher = new JSONFetcher(0);
+        mJSONFetcher.execute();
+
+        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Snackbar.make(view, calledFlag ? "Location information is current." : "Requesting location update", Snackbar.LENGTH_LONG)
+                        .setAction("Thanks", null).show();
+
+                if (!calledFlag) requestLocationUpdate();
+            }
+
+        });
+
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.menu_scrolling, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+
+        //noinspection SimplifiableIfStatement
+        if (id == R.id.action_settings) {
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    public void requestLocationUpdate(){
+
+        LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+
+        // respond to location updates
+        LocationListener locationListener = new LocationListener() {
+            public void onLocationChanged(Location location) {
+                //useLocation(location);
+                if(!calledFlag) {
+                    Toast.makeText(getApplicationContext(),"Location received:" + location.toString(),Toast.LENGTH_LONG).show();
+                    Log.v("Location", location.toString());
+
+                }
+                calledFlag = true;
+            }
+
+            public void onStatusChanged(String provider, int status, Bundle extras) {}
+
+            public void onProviderEnabled(String provider) {}
+
+            public void onProviderDisabled(String provider) {}
+        };
+
+// Register the listener with the Location Manager to receive location updates
+        //checkPermission("android.permission.ACCESS_FINE_LOCATION"); "android.permission.ACCESS_COARSE_LOCATION"
+        PackageManager pm = this.getPackageManager();
+        int hasFineLocPerm = pm.checkPermission(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                this.getPackageName());
+        int hasCoarseLocPerm = pm.checkPermission(
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+                this.getPackageName());
+        if (    (hasFineLocPerm != PackageManager.PERMISSION_GRANTED) ||
+                (hasCoarseLocPerm != PackageManager.PERMISSION_GRANTED))
+        {
+            //Report error
+        }else{
+            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
+
+        }
+
+    }
+
+    void setAdapter(String s){
+        days = s.split("[|]");
+        ListView lv = (ListView) findViewById(R.id.listview);
+        for (int i = 0; i < days.length; ++i) {
+            mDayList.add(days[i]);
+        }
+
+        final StableArrayAdapter adapter = new StableArrayAdapter(getApplicationContext(),
+                android.R.layout.simple_list_item_1, mDayList);
+        lv.setAdapter(adapter);
+
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+    }
+
+
+    public void updateView(String s, int position) {
+        final String TAG = "updateView";
+/*        TextView tv = (TextView) mUpdateView;
+
+        days = s.split("[|]");
+        tv.setText(days[position]);
+*/        Log.v(TAG, "exiting");
+
+    }
+    public class JSONFetcher extends AsyncTask<String, Integer, String> {
+        private final String TAG = "JSONFetcher";
+        private int mPosition = 0;
+
+        public JSONFetcher(int position) {
+            mPosition = position;
+        }
+
+        @Override
+        protected void onPreExecute() {
+            final String TAG = "onPreExecute";
+            Log.v(TAG, "Starting Async Execution");
+        }
+
+        @Override
+        protected void onPostExecute(String s) {
+            final String TAG = "onPostExecute";
+            setAdapter(s);
+            Log.v(TAG, "Finished Async Execution");
+
+            Log.v(TAG, "Async done. View Updated to:" + mPosition);
+
+
+        }
+
+        @Override
+        protected void onProgressUpdate(Integer... values) {
+            super.onProgressUpdate(values);
+            final String TAG = "onProgressUpdate";
+            Log.v(TAG, "Progress Report: " + values[0].toString());
+            updateView("Working...", mPosition);
+        }
+
+        @Override
+        protected String doInBackground(String... strings) {
+            final String TAG = "doInBackground";
+            DataLoader dl = new DataLoader();
+            String asyncResult = dl.getJSONData(Constants.JSON_HOST, Constants.HTTP_PORT, Constants.JSON_PATH);
+            String days = null;
+            try {
+                days = dl.parseTemps(asyncResult);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+            Log.v(TAG, "exiting");
+
+            return days;
+        }
+
+    }
+
+    private class StableArrayAdapter extends ArrayAdapter<String> {
+
+        HashMap<String, Integer> mIdMap = new HashMap<String, Integer>();
+
+        public StableArrayAdapter(Context context, int textViewResourceId,
+                                  List<String> objects) {
+            super(context, textViewResourceId, objects);
+            for (int i = 0; i < objects.size(); ++i) {
+                mIdMap.put(objects.get(i), i);
+            }
+        }
+
+        @Override
+        public long getItemId(int position) {
+            String item = getItem(position);
+            return mIdMap.get(item);
+        }
+
+        @Override
+        public boolean hasStableIds() {
+            return true;
+        }
+
+    }
+}
